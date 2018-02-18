@@ -1,0 +1,6 @@
+compilation: ghc -o hello hello.hs
+ghci : interaktive
+    :l (load file)
+    :r (reload file)
+
+ghc --make haskell-tuts.hs
