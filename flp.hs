@@ -9,6 +9,7 @@ data Fsm = Fsm { states ::  [String]
                , rules :: [[String]]
                } deriving (Show)
 
+main :: IO ()
 main = do
     args <- getArgs
     print args
@@ -17,13 +18,21 @@ main = do
                     readStdin
                 else
                     readFromFile (head args)
-    let x = parse fsm
-    printFsm
+    let parsedFsm = parse fsm
+    print $ rules parsedFsm
+    printFsm parsedFsm
     -- print(splitOn "," "my,comma,separated,list")
 
-printFsm = do
-    print "helloWorld"
-    
+printFsm:: Fsm -> IO ()
+printFsm x = do
+    putStrLn $ getString (states x)
+    putStrLn $ getString (initialState x)
+    putStrLn $ getString (finiteState x)
+    mapM_ putStrLn (map getString (rules x))
+
+getString:: [String] -> String
+getString = id $ intercalate ","
+
 readStdin:: IO String
 readStdin = do
     contents <- getContents
@@ -34,7 +43,7 @@ readFromFile filename = do
     contents <- readFile filename
     return contents
 
--- parse:: String -> Fsm
+parse:: String -> Fsm
 parse fsm = Fsm { states = (parsedFsm !! 0)
                 , initialState = (parsedFsm !! 1)
                 , finiteState = (parsedFsm !! 2)
@@ -42,14 +51,3 @@ parse fsm = Fsm { states = (parsedFsm !! 0)
                 }
     where fsmByLines = lines fsm
           parsedFsm = map (splitOn ",") fsmByLines
-
-
--- parse fsm =
---     let fsmByLines = lines fsm
---         parsedFsm = map (splitOn ",") fsmByLines
---     in map (splitOn ",") fsmByLines
-    -- in Fsm {states = (head parsedFsm),
-    --         initialState = [],
-    --         finiteState = [],
-    --         rules = [[]]
-    --         }
