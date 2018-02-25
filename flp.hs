@@ -3,12 +3,10 @@ import System.Environment
 import Data.List
 import Control.Monad
 import Data.List.Split
+import Data.Char (isDigit)
+import qualified Data.Set as Set
 
-data ParsedArgs = ParsedArgs { isValid :: Bool
-                             , fileName :: String
-                             , isI :: Bool
-                             , isT :: Bool
-                             } deriving (Show)
+import ArgumentParser
 
 data Fsm = Fsm { states ::  [String]
                , initialState :: [String]
@@ -30,7 +28,11 @@ main = do
 
     let parsedFsm = parse fsm
 
+    when (not $ isFsmValid parsedFsm) (error "Fsm is not valid")
+
     when (isI parsedArgs) (printFsm parsedFsm)
+
+    when (isT parsedArgs) (print $ Set.toList $ minimalizeFsm parsedFsm)
 
 printFsm:: Fsm -> IO ()
 printFsm x = do
@@ -61,49 +63,18 @@ parse fsm = Fsm { states = (parsedFsm !! 0)
     where fsmByLines = lines fsm
           parsedFsm = map (splitOn ",") fsmByLines
 
-parseArgs:: [String] -> ParsedArgs
-parseArgs ["-t"] = ParsedArgs { isValid = True
-                              , fileName = []
-                              , isI = False
-                              , isT = True
-                              }
-parseArgs ["-i"] = ParsedArgs { isValid = True
-                              , fileName = []
-                              , isI = True
-                              , isT = False
-                              }
-parseArgs ["-t", "-i"] = ParsedArgs { isValid = True
-                              , fileName = []
-                              , isI = True
-                              , isT = True
-                              }
-parseArgs ["-i", "-t"] = ParsedArgs { isValid = True
-                              , fileName = []
-                              , isI = True
-                              , isT = True
-                              }
-parseArgs ["-t", filename] = ParsedArgs { isValid = True
-                              , fileName = filename
-                              , isI = False
-                              , isT = True
-                              }
-parseArgs ["-i", filename] = ParsedArgs { isValid = True
-                              , fileName = filename
-                              , isI = True
-                              , isT = False
-                              }
-parseArgs ["-t", "-i", filename] = ParsedArgs { isValid = True
-                              , fileName = filename
-                              , isI = True
-                              , isT = True
-                              }
-parseArgs ["-i", "-t", filename] = ParsedArgs { isValid = True
-                              , fileName = filename
-                              , isI = True
-                              , isT = True
-                              }
-parseArgs others = ParsedArgs { isValid = False
-                              , fileName = []
-                              , isI = False
-                              , isT = False
-                              }
+isFsmValid:: Fsm -> Bool
+isFsmValid fsm
+            | not $ all isStringDigital (states fsm) = False
+            | not $ all isStringDigital (initialState fsm) = False
+            | not $ all isStringDigital (finiteState fsm) = False
+            | otherwise = True
+
+isStringDigital :: String -> Bool
+isStringDigital xs = ((length (filter isDigit xs )) == length (xs))
+
+
+-- minimalizeFsm
+------------------------------------------
+minimalizeFsm :: Fsm -> Set.Set String
+minimalizeFsm fsm = Set.fromList $ states fsm
