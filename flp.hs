@@ -3,6 +3,7 @@ import System.Environment
 import Data.List
 import Control.Monad
 import Data.List.Split
+import Debug.Trace
 import Data.Char (isDigit)
 import qualified Data.Set as Set
 
@@ -29,15 +30,17 @@ main = do
 
     let parsedFsm = parse fsm
 
-    print parsedFsm
-
-    when (not $ isFsmValid parsedFsm) (error "Fsm is not valid")
-
-    when (isI parsedArgs) (printFsm parsedFsm)
-
-    when (isT parsedArgs) (print $ minimalizeFsm parsedFsm)
-
+    -- print parsedFsm
+    --
+    -- when (not $ isFsmValid parsedFsm) (error "Fsm is not valid")
+    --
+    -- when (isI parsedArgs) (printFsm parsedFsm)
+    --
+    -- when (isT parsedArgs) (print $ minimalizeFsm parsedFsm)
+    --
     when (isT parsedArgs) (printFsm $ minimalizeFsm parsedFsm)
+
+    print $ try parsedFsm
 
 printFsm:: Fsm -> IO ()
 printFsm x = do
@@ -86,6 +89,7 @@ pairs l = [(x,y) | (x:ys) <- tails l, y <- ys]
 getSynkName :: Fsm -> String
 getSynkName fsm = show (succ (read (maximum (states fsm))) :: Int) :: String
 
+
 -- minimalizeFsm
 ------------------------------------------
 minimalizeFsm :: Fsm -> Fsm
@@ -106,13 +110,69 @@ makeTotalFsm fsm = Fsm { states = newStates
 
 -- TODO
 minimalizeTotalFsm :: Fsm -> Fsm
-minimalizeTotalFsm fsm = fsm
+minimalizeTotalFsm fsm = trace ("minimalizeTotalFsm" ++ show partitions) fsm
+                         where p = Set.insert (Set.toList $ finiteState fsm) (Set.insert (Set.toList $ Set.difference (states fsm) (finiteState fsm)) (Set.empty))
+                               w = Set.insert (Set.toList $ finiteState fsm) Set.empty
+                               partitions = getPartions fsm p w
+
+getPartions :: Fsm -> Set.Set [String] -> Set.Set [String] -> Set.Set [String]
+getPartions fsm p w = if null w
+                        then trace ("here") p
+                        else trace ("\n getPartions" ++ show x) getPartions fsm p' w'
+                        where a = Set.elemAt 0 w
+                              ww = Set.delete a w
+                              alpha = Set.toList $ alphabet fsm
+                              x = newValues fsm alpha p ww a
+                              p' = fst x
+                              w' = snd x
+
+---------- Toto urcite zle
+newValues :: Fsm -> [String] -> Set.Set [String] -> Set.Set [String] -> [String] -> (Set.Set [String], Set.Set [String])
+newValues fsm alpha p ww a = if length alpha == 0
+                            then (p, ww)
+                            else trace ("\n ewValues" ++ show x) (p', ww')
+                            where letter = alpha !! 0
+                                  alpha' = delete letter alpha
+                                  x = innerFor fsm letter a p ww
+                                  p' = fst x
+                                  ww' = snd x
+
+innerFor :: Fsm -> String -> [String] -> Set.Set [String] -> Set.Set [String] -> (Set.Set [String], Set.Set [String])
+innerFor fsm letter a p ww = trace (" \n Nooou " ++ show yy) (p', ww')
+                             where x = Set.toList $ getSourceBySymbolAndDest fsm letter a
+                                   yy = Set.filter (\y -> length (y `intersect` x) /= 0 && length (y \\ x) /= 0 ) p
+                                   xx = lastFor p ww x yy
+                                   p' = fst xx
+                                   ww' = snd xx
+
+lastFor :: Set.Set [String] -> Set.Set [String] -> [String] -> Set.Set [String] -> (Set.Set [String], Set.Set [String])
+lastFor p ww x y = if null y
+                    then (p, ww)
+                    else (p'', w')
+                    where yy = Set.elemAt 0 y
+                          p' = Set.delete yy p
+                          p'' = Set.insert (yy \\ x) (Set.insert (intersect x yy) p)
+                          w' = if (yy `Set.member` ww)
+                                then Set.insert (yy \\ x) (Set.insert (intersect x yy) (Set.delete yy ww))
+                                else if length (intersect x yy ) <= length (yy \\ x)
+                                        then Set.insert (intersect x yy ) ww
+                                        else Set.insert (yy \\ x) ww
+
+
+try :: Fsm -> [String]
+try fsm = alpha
+          where p = Set.insert (Set.toList $ finiteState fsm) (Set.insert (Set.toList $ Set.difference (states fsm) (finiteState fsm)) (Set.empty))
+                w = Set.insert (Set.toList $ finiteState fsm) Set.empty
+                alpha = Set.toList $ alphabet fsm
 
 getAllSource :: Set.Set [String] -> Set.Set String
 getAllSource transitions = Set.map (!! 0) transitions
 
 getSymbolBySource ::  Set.Set [String] -> String -> Set.Set String
 getSymbolBySource transitions state = Set.map (!! 1) (Set.filter (\x -> (x !! 0) == state ) transitions)
+
+getSourceBySymbolAndDest :: Fsm -> String -> [String] -> Set.Set String
+getSourceBySymbolAndDest fsm symbol dest = Set.map (!! 0) (Set.filter (\x -> (x !! 1) == symbol && (x !! 2) `elem` dest) (rules fsm))
 
 generateIfNotExist :: Set.Set [String] -> String -> String -> String -> [String]
 generateIfNotExist rules synk state symbol = if isExistTransition rules state symbol
