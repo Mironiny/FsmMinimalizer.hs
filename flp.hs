@@ -36,7 +36,7 @@ main = do
 
     when (isI parsedArgs) (printFsm parsedFsm)
 
-    when (isT parsedArgs) (print $ minimalizeFsm parsedFsm)
+    -- when (isT parsedArgs) (print $ minimalizeFsm parsedFsm)
     --
     when (isT parsedArgs) (printFsm $ minimalizeFsm parsedFsm)
 
@@ -118,7 +118,7 @@ minimalizeTotalFsm fsm = trace ("minimalizeTotalFsm" ++ show partitions) fsm
 getPartions :: Fsm -> Set.Set [String] -> Set.Set [String] -> Set.Set [String]
 getPartions fsm p w = if Set.null w
                         then trace ("here") p
-                        else trace ("\n getPartions" ++ show x) getPartions fsm p' w'
+                        else trace ("\n getPartions " ++ show ww ) getPartions fsm p' w'
                         where a = head $ Set.toList w
                               ww = Set.delete a w
                               alpha = Set.toList $ alphabet fsm
@@ -130,7 +130,7 @@ getPartions fsm p w = if Set.null w
 newValues :: Fsm -> [String] -> Set.Set [String] -> Set.Set [String] -> [String] -> (Set.Set [String], Set.Set [String])
 newValues fsm alpha p ww a = if length alpha == 0
                             then (p, ww)
-                            else trace ("\n ewValues" ++ show x) (p', ww')
+                            else trace ("newValues" ++ show alpha) (newValues fsm alpha' p' ww' a)
                             where letter = alpha !! 0
                                   alpha' = delete letter alpha
                                   x = innerFor fsm letter a p ww
@@ -138,7 +138,7 @@ newValues fsm alpha p ww a = if length alpha == 0
                                   ww' = snd x
 
 innerFor :: Fsm -> String -> [String] -> Set.Set [String] -> Set.Set [String] -> (Set.Set [String], Set.Set [String])
-innerFor fsm letter a p ww = trace (" \n Nooou " ++ show yy) (p', ww')
+innerFor fsm letter a p ww = trace (" \n innerFor: ww " ++ show ww' ++ " p " ++ show p') (p', ww')
                              where x = Set.toList $ getSourceBySymbolAndDest fsm letter a
                                    yy = Set.filter (\y -> length (y `intersect` x) /= 0 && length (y \\ x) /= 0 ) p
                                    xx = lastFor p ww x yy
@@ -151,7 +151,7 @@ lastFor p ww x y = if Set.null y
                     else (p'', w')
                     where yy = head $ Set.toList y
                           p' = Set.delete yy p
-                          p'' = Set.insert (yy \\ x) (Set.insert (intersect x yy) p)
+                          p'' = Set.insert (yy \\ x) (Set.insert (intersect x yy) p')
                           w' = if (yy `Set.member` ww)
                                 then Set.insert (yy \\ x) (Set.insert (intersect x yy) (Set.delete yy ww))
                                 else if length (intersect x yy ) <= length (yy \\ x)
