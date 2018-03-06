@@ -32,11 +32,11 @@ main = do
 
     -- print parsedFsm
     --
-    -- when (not $ isFsmValid parsedFsm) (error "Fsm is not valid")
-    --
-    -- when (isI parsedArgs) (printFsm parsedFsm)
-    --
-    -- when (isT parsedArgs) (print $ minimalizeFsm parsedFsm)
+    when (not $ isFsmValid parsedFsm) (error "Fsm is not valid")
+
+    when (isI parsedArgs) (printFsm parsedFsm)
+
+    when (isT parsedArgs) (print $ minimalizeFsm parsedFsm)
     --
     when (isT parsedArgs) (printFsm $ minimalizeFsm parsedFsm)
 
@@ -44,7 +44,7 @@ main = do
 
 printFsm:: Fsm -> IO ()
 printFsm x = do
-    putStrLn $ getString $ Set.toList $(states x)
+    putStrLn $ getString $ Set.toList (states x)
     putStrLn $ getString $ Set.toList (initialState x)
     putStrLn $ getString $ Set.toList (finiteState x)
     mapM_ putStrLn (map getString $ Set.toList (rules x))
@@ -75,9 +75,9 @@ parse fsm = Fsm { states = Set.fromList (parsedFsm !! 0)
 
 isFsmValid:: Fsm -> Bool
 isFsmValid fsm
-            | not $ all isStringDigital (states fsm) = False
-            | not $ all isStringDigital (initialState fsm) = False
-            | not $ all isStringDigital (finiteState fsm) = False
+            | not $ all isStringDigital (Set.toList (states fsm)) = False
+            | not $ all isStringDigital (Set.toList (initialState fsm)) = False
+            | not $ all isStringDigital (Set.toList (finiteState fsm)) = False
             | otherwise = True
 
 isStringDigital :: String -> Bool
@@ -87,7 +87,7 @@ pairs :: [a] -> [(a, a)]
 pairs l = [(x,y) | (x:ys) <- tails l, y <- ys]
 
 getSynkName :: Fsm -> String
-getSynkName fsm = show (succ (read (maximum (states fsm))) :: Int) :: String
+getSynkName fsm = show (succ (read (maximum (Set.toList $ states fsm))) :: Int) :: String
 
 
 -- minimalizeFsm
@@ -116,10 +116,10 @@ minimalizeTotalFsm fsm = trace ("minimalizeTotalFsm" ++ show partitions) fsm
                                partitions = getPartions fsm p w
 
 getPartions :: Fsm -> Set.Set [String] -> Set.Set [String] -> Set.Set [String]
-getPartions fsm p w = if null w
+getPartions fsm p w = if Set.null w
                         then trace ("here") p
                         else trace ("\n getPartions" ++ show x) getPartions fsm p' w'
-                        where a = Set.elemAt 0 w
+                        where a = head $ Set.toList w
                               ww = Set.delete a w
                               alpha = Set.toList $ alphabet fsm
                               x = newValues fsm alpha p ww a
@@ -146,10 +146,10 @@ innerFor fsm letter a p ww = trace (" \n Nooou " ++ show yy) (p', ww')
                                    ww' = snd xx
 
 lastFor :: Set.Set [String] -> Set.Set [String] -> [String] -> Set.Set [String] -> (Set.Set [String], Set.Set [String])
-lastFor p ww x y = if null y
+lastFor p ww x y = if Set.null y
                     then (p, ww)
                     else (p'', w')
-                    where yy = Set.elemAt 0 y
+                    where yy = head $ Set.toList y
                           p' = Set.delete yy p
                           p'' = Set.insert (yy \\ x) (Set.insert (intersect x yy) p)
                           w' = if (yy `Set.member` ww)
