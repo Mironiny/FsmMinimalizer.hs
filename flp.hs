@@ -5,6 +5,7 @@ import Control.Monad
 import Data.List.Split
 import Debug.Trace
 import Data.Char (isDigit)
+import Data.Maybe
 import qualified Data.Set as Set
 
 import ArgumentParser
@@ -36,11 +37,7 @@ main = do
 
     when (isI parsedArgs) (printFsm parsedFsm)
 
-    -- when (isT parsedArgs) (print $ minimalizeFsm parsedFsm)
-    --
     when (isT parsedArgs) (printFsm $ minimalizeFsm parsedFsm)
-
-    print $ try parsedFsm
 
 printFsm:: Fsm -> IO ()
 printFsm x = do
@@ -110,15 +107,38 @@ makeTotalFsm fsm = Fsm { states = newStates
 
 -- TODO
 minimalizeTotalFsm :: Fsm -> Fsm
-minimalizeTotalFsm fsm = trace ("minimalizeTotalFsm" ++ show partitions) fsm
+minimalizeTotalFsm fsm = Fsm { states = newStates
+                             , initialState = newInitialStates
+                             , finiteState = newFiniteState
+                             , rules = newRules
+                             , alphabet = alphabet fsm
+                             }
+-- minimalizeTotalFsm fsm = trace ("minimalizeTotalFsm" ++ show partitions ++ " new states " ++ show newStates ++ " new rules " ++ show newRules) fsm
                          where p = Set.insert (Set.toList $ finiteState fsm) (Set.insert (Set.toList $ Set.difference (states fsm) (finiteState fsm)) (Set.empty))
                                w = Set.insert (Set.toList $ finiteState fsm) Set.empty
                                partitions = getPartions fsm p w
+                               newStates = Set.fromList $ map (show) (map (fst) (zip [1..] . sort . map sort $ (Set.toList partitions)))
+                               initialStates =  Set.toList $ initialState fsm
+                               finiteStates = Set.toList $ finiteState fsm
+                               convertStateToMimilizedStateByPartions = convertStateToMimilizedState partitions
+                               afterMinPart = afterMin partitions
+                               newInitialStates = Set.map (convertStateToMimilizedStateByPartions) (Set.filter (\x -> length (x `intersect` initialStates) /= 0) (partitions))
+                               newFiniteState = Set.map (convertStateToMimilizedStateByPartions) (Set.filter (\x -> length (x `intersect` finiteStates) /= 0) (partitions))
+                               newRules = Set.map (\x -> (afterMinPart $ x !! 0):(x !! 1):(afterMinPart $ x !! 2):[]) (rules fsm)
+
+convertStateToMimilizedState :: Set.Set [String] -> [String] -> String
+convertStateToMimilizedState partitions state = show ((fromJust $ elemIndex state (Set.toList partitions)) + 1)
+
+afterMin :: Set.Set [String] -> String -> String
+afterMin partions state = x
+                        where onePartion = filter (\x -> state `elem` x) (Set.toList partions)
+                              x = convertStateToMimilizedState partions (onePartion !! 0)
 
 getPartions :: Fsm -> Set.Set [String] -> Set.Set [String] -> Set.Set [String]
 getPartions fsm p w = if Set.null w
-                        then trace ("here") p
-                        else trace ("\n getPartions " ++ show ww ) getPartions fsm p' w'
+                        then p
+                        -- else trace ("\n getPartions " ++ show ww ) getPartions fsm p' w'
+                        else getPartions fsm p' w'
                         where a = head $ Set.toList w
                               ww = Set.delete a w
                               alpha = Set.toList $ alphabet fsm
@@ -130,7 +150,8 @@ getPartions fsm p w = if Set.null w
 newValues :: Fsm -> [String] -> Set.Set [String] -> Set.Set [String] -> [String] -> (Set.Set [String], Set.Set [String])
 newValues fsm alpha p ww a = if length alpha == 0
                             then (p, ww)
-                            else trace ("newValues" ++ show alpha) (newValues fsm alpha' p' ww' a)
+                            -- else trace ("newValues" ++ show alpha) (newValues fsm alpha' p' ww' a)
+                            else  newValues fsm alpha' p' ww' a
                             where letter = alpha !! 0
                                   alpha' = delete letter alpha
                                   x = innerFor fsm letter a p ww
@@ -138,7 +159,7 @@ newValues fsm alpha p ww a = if length alpha == 0
                                   ww' = snd x
 
 innerFor :: Fsm -> String -> [String] -> Set.Set [String] -> Set.Set [String] -> (Set.Set [String], Set.Set [String])
-innerFor fsm letter a p ww = trace (" \n innerFor: ww " ++ show ww' ++ " p " ++ show p') (p', ww')
+innerFor fsm letter a p ww = (p', ww')
                              where x = Set.toList $ getSourceBySymbolAndDest fsm letter a
                                    yy = Set.filter (\y -> length (y `intersect` x) /= 0 && length (y \\ x) /= 0 ) p
                                    xx = lastFor p ww x yy
