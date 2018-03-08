@@ -31,6 +31,8 @@ main = do
 
     let parsedFsm = parse fsm
 
+    print $ alphabet parsedFsm
+
     -- print parsedFsm
     --
     when (not $ isFsmValid parsedFsm) (error "Fsm is not valid")
@@ -98,11 +100,13 @@ makeTotalFsm :: Fsm -> Fsm
 makeTotalFsm fsm = Fsm { states = newStates
                        , initialState = initialState fsm
                        , finiteState = finiteState fsm
-                       , rules = Set.fromList $ [generateIfNotExist (rules fsm) (getSynkName fsm) x y | x <- (Set.toList newStates), y <- (Set.toList $ alphabet fsm)]
+                       , rules = rules'
                        , alphabet = alphabet fsm
                        }
                        where newStates = Set.insert (getSynkName fsm) (states fsm)
                              isExistTransitionsInRules = isExistTransition (rules fsm)
+                             rules' = Set.fromList $ [generateIfNotExist (rules fsm) (getSynkName fsm) x y
+                               | x <- (Set.toList newStates), y <- (Set.toList $ alphabet fsm)]
 
 
 -- TODO
@@ -132,12 +136,12 @@ convertStateToMimilizedState partitions state = show ((fromJust $ elemIndex stat
 afterMin :: Set.Set [String] -> String -> String
 afterMin partions state = x
                         where onePartion = filter (\x -> state `elem` x) (Set.toList partions)
-                              x = convertStateToMimilizedState partions (onePartion !! 0)
+                              x = convertStateToMimilizedState partions (head onePartion)
 
 getPartions :: Fsm -> Set.Set [String] -> Set.Set [String] -> Set.Set [String]
 getPartions fsm p w = if Set.null w
                         then p
-                        -- else trace ("\n getPartions " ++ show ww ) getPartions fsm p' w'
+                        -- else trace ("\n getPartions " ++ show (alphabet fsm) ) getPartions fsm p' w'
                         else getPartions fsm p' w'
                         where a = head $ Set.toList w
                               ww = Set.delete a w
@@ -152,7 +156,7 @@ newValues fsm alpha p ww a = if length alpha == 0
                             then (p, ww)
                             -- else trace ("newValues" ++ show alpha) (newValues fsm alpha' p' ww' a)
                             else  newValues fsm alpha' p' ww' a
-                            where letter = alpha !! 0
+                            where letter = head alpha
                                   alpha' = delete letter alpha
                                   x = innerFor fsm letter a p ww
                                   p' = fst x
@@ -169,6 +173,7 @@ innerFor fsm letter a p ww = (p', ww')
 lastFor :: Set.Set [String] -> Set.Set [String] -> [String] -> Set.Set [String] -> (Set.Set [String], Set.Set [String])
 lastFor p ww x y = if Set.null y
                     then (p, ww)
+                    -- else trace ("fuu") (p'', w')
                     else (p'', w')
                     where yy = head $ Set.toList y
                           p' = Set.delete yy p
@@ -187,7 +192,7 @@ try fsm = alpha
                 alpha = Set.toList $ alphabet fsm
 
 getAllSource :: Set.Set [String] -> Set.Set String
-getAllSource transitions = Set.map (!! 0) transitions
+getAllSource transitions = Set.map (head) transitions
 
 getSymbolBySource ::  Set.Set [String] -> String -> Set.Set String
 getSymbolBySource transitions state = Set.map (!! 1) (Set.filter (\x -> (x !! 0) == state ) transitions)
@@ -204,7 +209,10 @@ isExistTransition :: Set.Set [String] -> String -> String -> Bool
 isExistTransition rules state symbol = not $ Set.null $ Set.filter (\x -> (x !! 0) == state && (x !! 1) == symbol) (rules)
 
 getDestinationBySourceAndSymbol:: Set.Set [String] -> String -> String -> String
-getDestinationBySourceAndSymbol rules state symbol = map (!! 0) $ Set.toList $ Set.map (!! 2) (Set.filter (\x -> (x !! 0) == state && (x !! 1) == symbol) (rules))
+getDestinationBySourceAndSymbol rules state symbol = map (!! 0) $ Set.toList $ Set.map (!! 2) $
+                                                           Set.filter (\x -> (x !! 0) == state && (x !! 1) == symbol)(rules)
+
+
 
 isFsmTotal :: Fsm -> Bool
 isFsmTotal fsm = getAllSource (rules fsm) == states fsm
