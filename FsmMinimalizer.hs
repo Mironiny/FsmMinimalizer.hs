@@ -43,12 +43,14 @@ generateIfNotExist :: Set.Set [String] -> String -> String -> String -> [String]
 generateIfNotExist rules synk state symbol = if isExistTransition rules state symbol
                                               then [state, symbol, (getDestinationBySourceAndSymbol rules state symbol)]
                                               else [state, symbol, synk]
-                                              
+
 -- Check if input Fsm is Total
 ------------------------------------------
 isFsmTotal :: Fsm -> Bool
-isFsmTotal fsm = getAllSource (rules fsm) == states fsm
-                 && Set.filter (\x -> getSymbolBySource (rules fsm) x == alphabet fsm) (states fsm) == states fsm                               
+isFsmTotal fsm = if Set.size (alphabet fsm) == 0
+                    then True
+                    else getAllSource (rules fsm) == states fsm
+                         && Set.filter (\x -> getSymbolBySource (rules fsm) x == alphabet fsm) (states fsm) == states fsm
 
 
 -- Minimalization of total Fsm (minimalization is possible only to total Fsm)
@@ -142,7 +144,7 @@ forEachY p ww x y = if Set.null y
 getAllSource :: Set.Set [String] -> Set.Set String
 getAllSource rules = Set.map (head) rules
 
--- Gett all symbols (letters) by single source 
+-- Gett all symbols (letters) by single source
 ------------------------------------------
 getSymbolBySource ::  Set.Set [String] -> String -> Set.Set String
 getSymbolBySource transitions state = Set.map (!! 1) (Set.filter (\x -> (x !! 0) == state ) transitions)

@@ -28,9 +28,7 @@ main = do
                     readFromFile (fileName parsedArgs)
 
     let parsedFsm = parse fsm
-
-    print fsm
-
+    
     let status = isFsmValid parsedFsm
 
     when (not $ fst status) (error $ snd status)
@@ -38,7 +36,3 @@ main = do
     when (isI parsedArgs) (printFsm parsedFsm)
 
     when (isT parsedArgs) (printFsm $ minimalizeFsm parsedFsm)
-
-
-
-
