@@ -27,8 +27,10 @@ main = do
                 else
                     readFromFile (fileName parsedArgs)
 
+    when ((length $ lines fsm) < 3 ) (error "Not valid input")
+
     let parsedFsm = parse fsm
-    
+
     let status = isFsmValid parsedFsm
 
     when (not $ fst status) (error $ snd status)

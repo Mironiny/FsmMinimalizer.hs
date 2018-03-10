@@ -10,6 +10,7 @@ import Debug.Trace
 import Data.List
 import qualified Data.Set as Set
 import Data.Char (isDigit)
+import Data.Char (isSpace)
 import Data.List.Split
 
 data Fsm = Fsm { states ::  Set.Set String
@@ -21,9 +22,10 @@ data Fsm = Fsm { states ::  Set.Set String
 
 
 parse:: String -> Fsm
-parse fsm = Fsm { states = Set.fromList (parsedFsm !! 0)
-                , initialState = Set.fromList (parsedFsm !! 1)
-                , finiteState = Set.fromList (parsedFsm !! 2)
+
+parse fsm = Fsm { states = Set.fromList $ removeWhiteSpace (parsedFsm !! 0)
+                , initialState = Set.fromList $ removeWhiteSpace (parsedFsm !! 1)
+                , finiteState = Set.fromList $ removeWhiteSpace (parsedFsm !! 2)
                 , rules = Set.fromList (drop 3 parsedFsm)
                 , alphabet = Set.fromList $ map (!! 1) (drop 3 parsedFsm)
                 }
@@ -74,3 +76,6 @@ isStringLetter s = length s == 1 && (head s) `elem` ['a'..'z']
 
 isStateDefined :: [String] -> String -> Bool
 isStateDefined definedState state = state `elem` definedState
+
+removeWhiteSpace :: [String] -> [String]
+removeWhiteSpace s =  map (filter $ not . isSpace) s
