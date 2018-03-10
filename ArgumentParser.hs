@@ -1,3 +1,8 @@
+-- Project: dka2mka
+-- Autor: Bc. Miroslav xnovak1k
+-- Description: Application which convert deterministic finite state machine to
+--              minimal finita state machine.
+
 module ArgumentParser where
 
 data ParsedArgs = ParsedArgs { isValid :: Bool
